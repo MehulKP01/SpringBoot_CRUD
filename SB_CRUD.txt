@@ -1,0 +1,349 @@
+application.properties =>
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/emp
+spring.datasource.username=root
+spring.datasource.password=password
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+*************************************************************
+
+<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency> 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+	 	<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency> 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+*************************************************************
+
+EMP Controller =>
+@Controller
+public class EmpController {
+
+	@Autowired
+	private EmpService service;
+
+	@GetMapping("/")
+	public String home(Model m) {
+		return findPaginated(0, m);
+	}
+
+	@GetMapping("/addemp")
+	public String addEmpForm() {
+		return "add_emp";
+	}
+
+	@PostMapping("/register")
+	public String empRegister(@ModelAttribute Employee e, HttpSession session) {
+		service.addEmp(e);
+		session.setAttribute("msg", "Emplyoee Added Sucessfully..");
+		return "redirect:/";
+	}
+
+	@GetMapping("/edit/{id}")
+	public String edit(@PathVariable int id, Model m) {
+		Employee e = service.getEMpById(id);
+		m.addAttribute("emp", e);
+		return "edit";
+	}
+
+	@PostMapping("/update")
+	public String updateEmp(@ModelAttribute Employee e, HttpSession session) {
+		service.addEmp(e);
+		session.setAttribute("msg", "Emp Data Update Sucessfully..");
+		return "redirect:/";
+	}
+
+	@GetMapping("/delete/{id}")
+	public String deleteEMp(@PathVariable int id, HttpSession session) {
+
+		service.deleteEMp(id);
+		session.setAttribute("msg", "Emp Data Delete Sucessfully..");
+		return "redirect:/";
+	}
+
+	@GetMapping("/page/{pageno}")
+	public String findPaginated(@PathVariable int pageno, Model m) {
+
+		Page<Employee> emplist = service.getEMpByPaginate(pageno, 2);
+		m.addAttribute("emp", emplist);
+		m.addAttribute("currentPage", pageno);
+		m.addAttribute("totalPages", emplist.getTotalPages());
+		m.addAttribute("totalItem", emplist.getTotalElements());
+		return "index";
+	}
+
+}
+*************************************************************
+Employee entity =>
+
+@Entity
+@Table(name = "EMP_SYSTEM")
+public class Employee {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private int id;
+	private String name;
+	private String address;
+	private String email;
+	private String phno;
+	private int salary;
+
+	public Employee() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getPhno() {
+		return phno;
+	}
+
+	public void setPhno(String phno) {
+		this.phno = phno;
+	}
+
+	public int getSalary() {
+		return salary;
+	}
+
+	public void setSalary(int salary) {
+		this.salary = salary;
+	}
+
+	@Override
+	public String toString() {
+		return "Employee [id=" + id + ", name=" + name + ", address=" + address + ", email=" + email + ", phno=" + phno
+				+ ", salary=" + salary + "]";
+	}
+}
+*************************************************************
+Employee Repo =>
+package com.prog.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.prog.entity.Employee;
+
+@Repository
+public interface EmpRepo  extends JpaRepository<Employee, Integer>{
+
+}
+*************************************************************
+EMP service =>
+
+@Service
+public class EmpService {
+
+	@Autowired
+	private EmpRepo repo;
+
+	public void addEmp(Employee e) {
+		repo.save(e);
+	}
+
+	public List<Employee> getAllEmp() {
+		return repo.findAll();
+	}
+
+	public Employee getEMpById(int id) {
+		Optional<Employee> e = repo.findById(id);
+		if (e.isPresent()) {
+			return e.get();
+		}
+		return null;
+	}
+
+	public void deleteEMp(int id) {
+		repo.deleteById(id);
+	}
+
+	public Page<Employee> getEMpByPaginate(int currentPage, int size) {
+		Pageable p = PageRequest.of(currentPage, size);
+		return repo.findAll(p);
+	}
+
+}
+*************************************************************
+index page =>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.com">
+<head>
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!-- Bootstrap CSS -->
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+	integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+	crossorigin="anonymous">
+
+<title>Home page</title>
+</head>
+<body>
+
+	<!-- Navbar -->
+
+
+	<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+		<a class="navbar-brand" href="#">EMP System</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse"
+			data-target="#navbarSupportedContent"
+			aria-controls="navbarSupportedContent" aria-expanded="false"
+			aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<div class="collapse navbar-collapse" id="navbarSupportedContent">
+			<ul class="navbar-nav mr-auto">
+				<li class="nav-item active"><a class="nav-link" href="#">Home
+						<span class="sr-only">(current)</span>
+				</a></li>
+				<li class="nav-item active"><a class="nav-link" href="addemp">Add
+						EMP</a></li>
+
+			</ul>
+		</div>
+	</nav>
+
+	<!-- Navbar -->
+
+	<div th:if=${session.msg}>
+		<div class="alert alert-success" role="alert" th:text="${session.msg}">
+		</div>
+		<th:block th:text="${#session.removeAttribute('msg')}"></th:block>
+	</div>
+
+
+	<div class="container p-5">
+		<table class="table table-striped" border="1">
+			<thead class="bg-primary text-white">
+				<tr>
+					<th scope="col">Id</th>
+					<th scope="col">Name</th>
+					<th scope="col">Address</th>
+					<th scope="col">Email</th>
+					<th scope="col">Phone No</th>
+					<th scope="col">Salary</th>
+					<th scope="col">Action</th>
+
+				</tr>
+			</thead>
+			<tbody>
+				<tr th:each="e : ${emp}">
+					<th th:text="${e.id}">1</th>
+					<td th:text="${e.name}"></td>
+					<td th:text="${e.address}"></td>
+					<td th:text="${e.email}"></td>
+					<td th:text="${e.phno}"></td>
+					<td th:text="${e.salary}"></td>
+					<td><a class="btn btn-sm btn-primary"
+						th:href="@{/edit/{id}(id=${e.id})}">Edit</a> <a
+						class="btn btn-sm btn-danger"
+						th:href="@{/delete/{id}(id=${e.id})}">Delete</a></td>
+				</tr>
+			</tbody>
+		</table>
+
+	</div>
+
+	<div class="container">
+
+		<p>Total Emp: [[${totalItem}]]</p>
+
+		<nav aria-label="Page navigation example">
+			<ul class="pagination">
+				<li th:if="${currentPage !=0}" class="page-item"><a class="page-link" th:href="@{'/page/'+${currentPage-1}}">Previous</a></li>
+
+
+				<li th:each="i:${#numbers.sequence(1,totalPages)}"  th:classappend="${currentPage==i-1 ? 'active' : '' }"  class="page-item">
+				
+				<a class="page-link" th:href="@{'/page/'+${i-1}}">[[${i}]]</a>
+				
+				
+				</li>
+
+				<li th:if="${currentPage+1!=totalPages}" class="page-item"><a class="page-link" th:href="@{'/page/'+${currentPage+1}}">Next</a></li>
+			</ul>
+		</nav>
+	</div>
+
+
+
+
+	<!-- Optional JavaScript -->
+	<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+		integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+		integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+		integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+		crossorigin="anonymous"></script>
+</body>
+</html>
